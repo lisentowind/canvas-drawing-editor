@@ -1,0 +1,5 @@
+{
+  "name": "Gemini Creative Studio",
+  "description": "A powerful React-based image editing suite featuring drawing tools, shape manipulation, and AI-powered creative assistance using Google Gemini.",
+  "requestFramePermissions": []
+}

@@ -1,0 +1,56 @@
+{
+  "name": "canvas-drawing-editor",
+  "version": "2.0.17",
+  "description": "A powerful canvas-based drawing editor Web Component - Zero dependencies, works with Vue 2/3, React, Angular, and vanilla HTML",
+  "type": "module",
+  "main": "dist/canvas-drawing-editor.umd.js",
+  "module": "dist/canvas-drawing-editor.es.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/canvas-drawing-editor.es.js",
+      "require": "./dist/canvas-drawing-editor.umd.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "build:lib": "vite build --mode lib",
+    "preview": "vite preview",
+    "prepublishOnly": "npm run build:lib"
+  },
+  "keywords": [
+    "canvas",
+    "drawing-editor",
+    "image-editor",
+    "web-component",
+    "drawing",
+    "vue",
+    "vue2",
+    "vue3",
+    "react",
+    "angular",
+    "vanilla",
+    "no-dependencies",
+    "zero-dependencies"
+  ],
+  "author": "typsusan <typsusan@163.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.0",
+    "vite-plugin-dts": "^4.5.4"
+  }
+}

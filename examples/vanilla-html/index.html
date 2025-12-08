@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Canvas Drawing Editor - 原生 HTML 示例</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    canvas-drawing-editor {
+      width: 100vw;
+      height: 100vh;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <!-- 使用 Web Component - 零依赖 -->
+  <canvas-drawing-editor
+    title="我的画板"
+    show-minimap="true"
+    show-zoom="true"
+  ></canvas-drawing-editor>
+
+  <!-- 引入 Web Component (无需 React) -->
+  <script src="../../dist/canvas-drawing-editor.umd.js"></script>
+
+  <script>
+    // 监听编辑器事件
+    document.addEventListener('editor-change', (e) => {
+      console.log('画布内容变化:', e.detail.objects);
+    });
+  </script>
+</body>
+</html>
