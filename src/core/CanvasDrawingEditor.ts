@@ -4,7 +4,7 @@
  */
 
 // 类型定义
-export type ToolType = 'SELECT' | 'PENCIL' | 'RECTANGLE' | 'CIRCLE' | 'TEXT' | 'IMAGE';
+export type ToolType = 'SELECT' | 'PENCIL' | 'RECTANGLE' | 'CIRCLE' | 'TEXT' | 'IMAGE' | 'LINE' | 'ARROW' | 'POLYGON';
 
 export interface Point {
   x: number;
@@ -18,6 +18,8 @@ export interface BaseObject {
   y: number;
   color: string;
   lineWidth: number;
+  visible?: boolean;  // 图层可见性
+  locked?: boolean;   // 图层锁定
 }
 
 export interface RectObject extends BaseObject {
@@ -47,6 +49,9 @@ export interface TextObject extends BaseObject {
   type: 'TEXT';
   text: string;
   fontSize: number;
+  fontFamily?: string;   // 字体
+  bold?: boolean;        // 加粗
+  italic?: boolean;      // 斜体
   hotzone?: HotzoneConfig; // 热区配置（可选）
 }
 
@@ -58,12 +63,77 @@ export interface ImageObject extends BaseObject {
   imageElement?: HTMLImageElement;
 }
 
-export type CanvasObject = RectObject | CircleObject | PathObject | TextObject | ImageObject;
+// 线条对象
+export interface LineObject extends BaseObject {
+  type: 'LINE';
+  x2: number;
+  y2: number;
+}
+
+// 箭头对象
+export interface ArrowObject extends BaseObject {
+  type: 'ARROW';
+  x2: number;
+  y2: number;
+}
+
+// 多边形对象
+export interface PolygonObject extends BaseObject {
+  type: 'POLYGON';
+  sides: number;    // 边数（3=三角形，5=五边形，6=六边形等）
+  radius: number;   // 外接圆半径
+  rotation?: number; // 旋转角度
+}
+
+// 组合对象
+export interface GroupObject extends BaseObject {
+  type: 'GROUP';
+  children: CanvasObject[];
+  width: number;
+  height: number;
+}
+
+export type CanvasObject = RectObject | CircleObject | PathObject | TextObject | ImageObject | LineObject | ArrowObject | PolygonObject | GroupObject;
 
 export type LangType = 'zh' | 'en';
 
+// 工具配置接口（新的统一配置方式）
+export interface ToolConfig {
+  // 基础绘图工具
+  pencil?: boolean;       // 画笔
+  rectangle?: boolean;    // 矩形
+  circle?: boolean;       // 圆形
+  text?: boolean;         // 文本
+  image?: boolean;        // 图片
+  line?: boolean;         // 线条
+  arrow?: boolean;        // 箭头
+  polygon?: boolean;      // 多边形
+  // 操作功能
+  undo?: boolean;         // 撤销
+  redo?: boolean;         // 重做
+  // 视图控制
+  zoom?: boolean;         // 缩放
+  // 文件操作
+  download?: boolean;     // 导出 PNG
+  exportJson?: boolean;   // 导出 JSON
+  importJson?: boolean;   // 导入 JSON
+  clear?: boolean;        // 清空画布
+  // 样式工具
+  color?: boolean;        // 颜色选择器
+  fontFamily?: boolean;   // 字体选择
+  bold?: boolean;         // 加粗
+  italic?: boolean;       // 斜体
+  // 高级功能
+  layers?: boolean;       // 图层管理
+  group?: boolean;        // 组合/解组
+  align?: boolean;        // 对齐/分布
+}
+
 export interface EditorConfig {
   title?: string;
+  // 新的工具配置对象
+  tool?: ToolConfig;
+  // 保留旧属性以向后兼容（deprecated）
   showPencil?: boolean;
   showRectangle?: boolean;
   showCircle?: boolean;
@@ -75,6 +145,7 @@ export interface EditorConfig {
   showImport?: boolean;
   showColor?: boolean;
   showClear?: boolean;
+  // 通用配置
   lang?: LangType;
   themeColor?: string;
   enableHotzone?: boolean; // 是否启用热区功能，默认false（管理员开启，用户端关闭）
@@ -89,7 +160,10 @@ const i18n: Record<LangType, Record<string, string>> = {
     circle: '圆形 (O)',
     text: '文本 (T)',
     insertImage: '插入图片',
+    shapes: '形状工具',
+    media: '媒体工具',
     undo: '撤销 (Ctrl+Z)',
+    redo: '重做 (Ctrl+Y)',
     colorPicker: '颜色选择',
     zoomOut: '缩小',
     zoomIn: '放大',
@@ -105,6 +179,40 @@ const i18n: Record<LangType, Record<string, string>> = {
     textPlaceholder: '输入文本...',
     startCreating: '开始创作',
     selectToolHint: '选择左侧的工具开始绘制',
+    // 新增图形工具
+    line: '线条 (L)',
+    arrow: '箭头 (A)',
+    polygon: '多边形',
+    // 图层管理
+    layers: '图层',
+    layerUp: '上移图层',
+    layerDown: '下移图层',
+    layerTop: '置顶',
+    layerBottom: '置底',
+    layerVisible: '显示/隐藏',
+    layerLock: '锁定/解锁',
+    show: '显示',
+    hide: '隐藏',
+    selected: '已选择',
+    multiSelected: '已选择 {count} 个对象',
+    delete: '删除',
+    selectAll: '全选 (Ctrl+A)',
+    // 组合/解组
+    group: '组合 (Ctrl+G)',
+    ungroup: '解组 (Ctrl+Shift+U)',
+    // 对齐/分布
+    alignLeft: '左对齐',
+    alignCenter: '水平居中',
+    alignRight: '右对齐',
+    alignTop: '顶对齐',
+    alignMiddle: '垂直居中',
+    alignBottom: '底对齐',
+    distributeH: '水平分布',
+    distributeV: '垂直分布',
+    // 文本样式
+    fontFamily: '字体',
+    bold: '加粗',
+    italic: '斜体',
     // 热区相关
     hotzoneCreate: '新建热区',
     hotzoneEdit: '编辑热区',
@@ -127,7 +235,10 @@ const i18n: Record<LangType, Record<string, string>> = {
     circle: 'Circle (O)',
     text: 'Text (T)',
     insertImage: 'Insert Image',
+    shapes: 'Shape Tools',
+    media: 'Media Tools',
     undo: 'Undo (Ctrl+Z)',
+    redo: 'Redo (Ctrl+Y)',
     colorPicker: 'Color Picker',
     zoomOut: 'Zoom Out',
     zoomIn: 'Zoom In',
@@ -143,6 +254,40 @@ const i18n: Record<LangType, Record<string, string>> = {
     textPlaceholder: 'Enter text...',
     startCreating: 'Start Creating',
     selectToolHint: 'Select a tool on the left to start drawing',
+    // New shape tools
+    line: 'Line (L)',
+    arrow: 'Arrow (A)',
+    polygon: 'Polygon',
+    // Layer management
+    layers: 'Layers',
+    layerUp: 'Move Up',
+    layerDown: 'Move Down',
+    layerTop: 'Bring to Front',
+    layerBottom: 'Send to Back',
+    layerVisible: 'Show/Hide',
+    layerLock: 'Lock/Unlock',
+    show: 'Show',
+    hide: 'Hide',
+    selected: 'Selected',
+    multiSelected: '{count} objects selected',
+    delete: 'Delete',
+    selectAll: 'Select All (Ctrl+A)',
+    // Group/Ungroup
+    group: 'Group (Ctrl+G)',
+    ungroup: 'Ungroup (Ctrl+Shift+U)',
+    // Align/Distribute
+    alignLeft: 'Align Left',
+    alignCenter: 'Align Center',
+    alignRight: 'Align Right',
+    alignTop: 'Align Top',
+    alignMiddle: 'Align Middle',
+    alignBottom: 'Align Bottom',
+    distributeH: 'Distribute Horizontally',
+    distributeV: 'Distribute Vertically',
+    // Text styles
+    fontFamily: 'Font',
+    bold: 'Bold',
+    italic: 'Italic',
     // Hotzone related
     hotzoneCreate: 'Create Hotzone',
     hotzoneEdit: 'Edit Hotzone',
@@ -163,9 +308,43 @@ const i18n: Record<LangType, Record<string, string>> = {
 // 默认主题色
 const DEFAULT_THEME_COLOR = '#5450dc';
 
+// 默认工具配置
+const defaultToolConfig: ToolConfig = {
+  // 基础绘图工具
+  pencil: true,
+  rectangle: true,
+  circle: true,
+  text: true,
+  image: true,
+  line: true,
+  arrow: true,
+  polygon: true,
+  // 操作功能
+  undo: true,
+  redo: true,
+  // 视图控制
+  zoom: true,
+  // 文件操作
+  download: true,
+  exportJson: true,
+  importJson: true,
+  clear: true,
+  // 样式工具
+  color: true,
+  fontFamily: true,
+  bold: true,
+  italic: true,
+  // 高级功能
+  layers: true,
+  group: true,
+  align: true,
+};
+
 // 默认配置
 const defaultConfig: EditorConfig = {
   title: 'Canvas Editor',
+  tool: { ...defaultToolConfig },
+  // 旧属性默认值（向后兼容）
   showPencil: true,
   showRectangle: true,
   showCircle: true,
@@ -229,7 +408,18 @@ export class CanvasDrawingEditor extends HTMLElement {
 
   // 历史记录
   private history: CanvasObject[][] = [];
+  private redoHistory: CanvasObject[][] = [];  // 重做历史
   private clipboard: CanvasObject | null = null;
+
+  // 多选状态
+  private selectedIds: Set<string> = new Set();  // 多选 ID 集合
+  private isSelecting: boolean = false;          // 是否正在框选
+  private selectionRect: { x: number; y: number; width: number; height: number } | null = null;
+  private isMultiDragging: boolean = false;      // 是否正在多选拖动
+  private multiDragStart: Point = { x: 0, y: 0 }; // 多选拖动起始点
+
+  // 图层面板状态
+  private layerPanelVisible: boolean = false;
 
   // 缩放状态
   private scale: number = 1;
@@ -238,10 +428,12 @@ export class CanvasDrawingEditor extends HTMLElement {
   // 平移状态
   private isPanning: boolean = false;
   private panStart: Point = { x: 0, y: 0 };
+  private isSpacePressed: boolean = false;  // 空格键按下状态
 
   // 绑定的事件处理器（用于移除监听）
   private boundHandleResize: () => void;
   private boundHandleKeyDown: (e: KeyboardEvent) => void;
+  private boundHandleKeyUp: (e: KeyboardEvent) => void;
   private boundHandleWheel: (e: WheelEvent) => void;
 
   // 热区相关状态
@@ -253,20 +445,25 @@ export class CanvasDrawingEditor extends HTMLElement {
   constructor() {
     super();
     this.shadow = this.attachShadow({ mode: 'open' });
-    
+
     // 绑定事件处理器
     this.boundHandleResize = this.handleResize.bind(this);
     this.boundHandleKeyDown = this.handleKeyDown.bind(this);
+    this.boundHandleKeyUp = this.handleKeyUp.bind(this);
     this.boundHandleWheel = this.handleWheel.bind(this);
   }
 
   // 观察的属性
   static get observedAttributes(): string[] {
     return [
-      'title', 'show-pencil', 'show-rectangle', 'show-circle', 'show-text',
+      'title', 'tool-config', 'initial-data', 'lang', 'theme-color',
+      'enable-hotzone', 'hotzone-data',
+      // 旧属性（向后兼容）
+      'show-pencil', 'show-rectangle', 'show-circle', 'show-text',
       'show-image', 'show-zoom', 'show-download', 'show-export', 'show-import',
-      'show-color', 'show-clear', 'initial-data', 'lang', 'theme-color',
-      'enable-hotzone', 'hotzone-data'
+      'show-color', 'show-clear', 'show-line', 'show-arrow', 'show-polygon',
+      'show-undo', 'show-redo', 'show-layers', 'show-group', 'show-align',
+      'show-font-family', 'show-bold', 'show-italic'
     ];
   }
 
@@ -306,19 +503,59 @@ export class CanvasDrawingEditor extends HTMLElement {
     const langAttr = this.getAttribute('lang');
     const lang: LangType = (langAttr === 'en' || langAttr === 'zh') ? langAttr : defaultConfig.lang!;
 
+    // 解析新的 tool-config 属性
+    let toolConfig: ToolConfig = { ...defaultToolConfig };
+    const toolConfigAttr = this.getAttribute('tool-config');
+    if (toolConfigAttr) {
+      try {
+        const parsed = JSON.parse(toolConfigAttr);
+        toolConfig = { ...defaultToolConfig, ...parsed };
+      } catch (err) {
+        console.error('Failed to parse tool-config:', err);
+      }
+    } else {
+      // 如果没有 tool-config，使用旧属性（向后兼容）
+      toolConfig = {
+        pencil: this.getAttribute('show-pencil') !== 'false',
+        rectangle: this.getAttribute('show-rectangle') !== 'false',
+        circle: this.getAttribute('show-circle') !== 'false',
+        text: this.getAttribute('show-text') !== 'false',
+        image: this.getAttribute('show-image') !== 'false',
+        line: this.getAttribute('show-line') !== 'false',
+        arrow: this.getAttribute('show-arrow') !== 'false',
+        polygon: this.getAttribute('show-polygon') !== 'false',
+        undo: this.getAttribute('show-undo') !== 'false',
+        redo: this.getAttribute('show-redo') !== 'false',
+        zoom: this.getAttribute('show-zoom') !== 'false',
+        download: this.getAttribute('show-download') !== 'false',
+        exportJson: this.getAttribute('show-export') !== 'false',
+        importJson: this.getAttribute('show-import') !== 'false',
+        clear: this.getAttribute('show-clear') !== 'false',
+        color: this.getAttribute('show-color') !== 'false',
+        fontFamily: this.getAttribute('show-font-family') !== 'false',
+        bold: this.getAttribute('show-bold') !== 'false',
+        italic: this.getAttribute('show-italic') !== 'false',
+        layers: this.getAttribute('show-layers') !== 'false',
+        group: this.getAttribute('show-group') !== 'false',
+        align: this.getAttribute('show-align') !== 'false',
+      };
+    }
+
     this.config = {
       title: this.getAttribute('title') || defaultConfig.title,
-      showPencil: this.getAttribute('show-pencil') !== 'false',
-      showRectangle: this.getAttribute('show-rectangle') !== 'false',
-      showCircle: this.getAttribute('show-circle') !== 'false',
-      showText: this.getAttribute('show-text') !== 'false',
-      showImage: this.getAttribute('show-image') !== 'false',
-      showZoom: this.getAttribute('show-zoom') !== 'false',
-      showDownload: this.getAttribute('show-download') !== 'false',
-      showExport: this.getAttribute('show-export') !== 'false',
-      showImport: this.getAttribute('show-import') !== 'false',
-      showColor: this.getAttribute('show-color') !== 'false',
-      showClear: this.getAttribute('show-clear') !== 'false',
+      tool: toolConfig,
+      // 旧属性保留（向后兼容）
+      showPencil: toolConfig.pencil,
+      showRectangle: toolConfig.rectangle,
+      showCircle: toolConfig.circle,
+      showText: toolConfig.text,
+      showImage: toolConfig.image,
+      showZoom: toolConfig.zoom,
+      showDownload: toolConfig.download,
+      showExport: toolConfig.exportJson,
+      showImport: toolConfig.importJson,
+      showColor: toolConfig.color,
+      showClear: toolConfig.clear,
       lang: lang,
       themeColor: this.getAttribute('theme-color') || defaultConfig.themeColor,
       enableHotzone: this.getAttribute('enable-hotzone') === 'true',
@@ -326,6 +563,11 @@ export class CanvasDrawingEditor extends HTMLElement {
 
     // 解析热区数据
     this.parseHotzoneData();
+  }
+
+  // 获取工具配置（兼容新旧配置方式）
+  private getToolConfig(): ToolConfig {
+    return this.config.tool || defaultToolConfig;
   }
 
   // 解析热区数据属性
@@ -427,12 +669,14 @@ export class CanvasDrawingEditor extends HTMLElement {
   private setupEventListeners(): void {
     window.addEventListener('resize', this.boundHandleResize);
     window.addEventListener('keydown', this.boundHandleKeyDown);
+    window.addEventListener('keyup', this.boundHandleKeyUp);
   }
 
   // 移除事件监听
   private removeEventListeners(): void {
     window.removeEventListener('resize', this.boundHandleResize);
     window.removeEventListener('keydown', this.boundHandleKeyDown);
+    window.removeEventListener('keyup', this.boundHandleKeyUp);
     if (this.canvas) {
       this.canvas.removeEventListener('wheel', this.boundHandleWheel);
     }
@@ -525,6 +769,30 @@ export class CanvasDrawingEditor extends HTMLElement {
         const maxY = Math.max(...p.points.map(pt => pt.y));
         return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
       }
+      case 'LINE': {
+        const l = obj as LineObject;
+        const minX = Math.min(l.x, l.x2);
+        const maxX = Math.max(l.x, l.x2);
+        const minY = Math.min(l.y, l.y2);
+        const maxY = Math.max(l.y, l.y2);
+        return { x: minX, y: minY, width: maxX - minX || 10, height: maxY - minY || 10 };
+      }
+      case 'ARROW': {
+        const a = obj as ArrowObject;
+        const minX = Math.min(a.x, a.x2);
+        const maxX = Math.max(a.x, a.x2);
+        const minY = Math.min(a.y, a.y2);
+        const maxY = Math.max(a.y, a.y2);
+        return { x: minX, y: minY, width: maxX - minX || 10, height: maxY - minY || 10 };
+      }
+      case 'POLYGON': {
+        const pg = obj as PolygonObject;
+        return { x: pg.x - pg.radius, y: pg.y - pg.radius, width: pg.radius * 2, height: pg.radius * 2 };
+      }
+      case 'GROUP': {
+        const g = obj as GroupObject;
+        return { x: g.x, y: g.y, width: g.width, height: g.height };
+      }
     }
     return { x: 0, y: 0, width: 0, height: 0 };
   }
@@ -579,25 +847,458 @@ export class CanvasDrawingEditor extends HTMLElement {
         const maxY = Math.max(...p.points.map(pt => pt.y));
         return x >= minX && x <= maxX && y >= minY && y <= maxY;
       }
+      case 'LINE': {
+        const l = obj as LineObject;
+        // 检查点到线段的距离
+        const dist = this.pointToLineDistance(x, y, l.x, l.y, l.x2, l.y2);
+        return dist <= 10;
+      }
+      case 'ARROW': {
+        const a = obj as ArrowObject;
+        const dist = this.pointToLineDistance(x, y, a.x, a.y, a.x2, a.y2);
+        return dist <= 10;
+      }
+      case 'POLYGON': {
+        const pg = obj as PolygonObject;
+        const dist = Math.sqrt(Math.pow(x - pg.x, 2) + Math.pow(y - pg.y, 2));
+        return dist <= pg.radius;
+      }
+      case 'GROUP': {
+        const g = obj as GroupObject;
+        return x >= g.x && x <= g.x + g.width && y >= g.y && y <= g.y + g.height;
+      }
     }
     return false;
+  }
+
+  // 计算点到线段的距离
+  private pointToLineDistance(px: number, py: number, x1: number, y1: number, x2: number, y2: number): number {
+    const A = px - x1;
+    const B = py - y1;
+    const C = x2 - x1;
+    const D = y2 - y1;
+    const dot = A * C + B * D;
+    const lenSq = C * C + D * D;
+    let param = -1;
+    if (lenSq !== 0) param = dot / lenSq;
+    let xx, yy;
+    if (param < 0) {
+      xx = x1;
+      yy = y1;
+    } else if (param > 1) {
+      xx = x2;
+      yy = y2;
+    } else {
+      xx = x1 + param * C;
+      yy = y1 + param * D;
+    }
+    return Math.sqrt(Math.pow(px - xx, 2) + Math.pow(py - yy, 2));
   }
 
   // 保存历史
   private saveHistory(): void {
     this.history.push(JSON.parse(JSON.stringify(this.objects)));
+    // 执行新操作时清空重做历史
+    this.redoHistory = [];
+    this.updateUI();
   }
 
   // 撤销
   private undo(): void {
     if (this.history.length === 0) return;
+    // 保存当前状态到重做历史
+    this.redoHistory.push(JSON.parse(JSON.stringify(this.objects)));
     const previousState = this.history.pop();
     if (previousState) {
       this.objects = previousState;
       this.selectedId = null;
+      this.selectedIds.clear();
+      this.renderCanvas();
+      this.updateUI();
+      this.dispatchChangeEvent();
+    }
+  }
+
+  // 重做
+  private redo(): void {
+    if (this.redoHistory.length === 0) return;
+    // 保存当前状态到撤销历史
+    this.history.push(JSON.parse(JSON.stringify(this.objects)));
+    const nextState = this.redoHistory.pop();
+    if (nextState) {
+      this.objects = nextState;
+      this.selectedId = null;
+      this.selectedIds.clear();
+      this.renderCanvas();
+      this.updateUI();
+      this.dispatchChangeEvent();
+    }
+  }
+
+  // ========== 图层管理功能 ==========
+
+  // 切换图层面板
+  private toggleLayerPanel(): void {
+    this.layerPanelVisible = !this.layerPanelVisible;
+    const layerPanel = this.shadow.querySelector('.layer-panel') as HTMLElement;
+    if (layerPanel) {
+      layerPanel.style.display = this.layerPanelVisible ? 'block' : 'none';
+      if (this.layerPanelVisible) {
+        this.renderLayerList();
+      }
+    }
+  }
+
+  // 渲染图层列表
+  private renderLayerList(): void {
+    const layerList = this.shadow.querySelector('.layer-panel-list') as HTMLElement;
+    if (!layerList) return;
+
+    // 从顶层到底层显示（数组倒序）
+    const reversedObjects = [...this.objects].reverse();
+
+    layerList.innerHTML = reversedObjects.map((obj) => {
+      const isSelected = this.selectedId === obj.id || this.selectedIds.has(obj.id);
+      const name = obj.type === 'TEXT' ? (obj as TextObject).text.substring(0, 10) : obj.type;
+      const hidden = obj.visible === false;
+
+      return `
+        <div class="layer-item ${isSelected ? 'selected' : ''}" data-id="${obj.id}">
+          <canvas class="layer-item-thumbnail" data-id="${obj.id}" width="40" height="40"></canvas>
+          <span class="layer-item-name" style="${hidden ? 'opacity: 0.4;' : ''}">${name}</span>
+          <div class="layer-item-actions">
+            <button class="layer-item-btn layer-visibility-btn" data-id="${obj.id}" title="${hidden ? this.t('show') : this.t('hide')}">
+              ${hidden ? '👁‍🗨' : '👁'}
+            </button>
+            <button class="layer-item-btn layer-up-btn" data-id="${obj.id}" title="${this.t('layerUp')}">↑</button>
+            <button class="layer-item-btn layer-down-btn" data-id="${obj.id}" title="${this.t('layerDown')}">↓</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // 渲染缩略图
+    layerList.querySelectorAll('.layer-item-thumbnail').forEach((canvas) => {
+      const thumbCanvas = canvas as HTMLCanvasElement;
+      const id = thumbCanvas.dataset.id;
+      const obj = this.objects.find(o => o.id === id);
+      if (obj) {
+        this.renderThumbnail(thumbCanvas, obj);
+      }
+    });
+
+    // 绑定事件
+    layerList.querySelectorAll('.layer-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        const target = e.target as HTMLElement;
+        if (target.classList.contains('layer-item-btn')) return;
+        const id = (item as HTMLElement).dataset.id;
+        if (id) {
+          this.selectedId = id;
+          this.selectedIds.clear();
+          this.renderCanvas();
+          this.updateUI();
+          this.renderLayerList();
+        }
+      });
+    });
+
+    layerList.querySelectorAll('.layer-visibility-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = (btn as HTMLElement).dataset.id;
+        if (id) {
+          this.toggleLayerVisibility(id);
+          this.renderLayerList();
+        }
+      });
+    });
+
+    layerList.querySelectorAll('.layer-up-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = (btn as HTMLElement).dataset.id;
+        if (id) {
+          this.moveLayerUp(id);
+          this.renderLayerList();
+        }
+      });
+    });
+
+    layerList.querySelectorAll('.layer-down-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = (btn as HTMLElement).dataset.id;
+        if (id) {
+          this.moveLayerDown(id);
+          this.renderLayerList();
+        }
+      });
+    });
+  }
+
+  // 渲染单个对象的缩略图
+  private renderThumbnail(canvas: HTMLCanvasElement, obj: CanvasObject): void {
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const size = 40;
+    ctx.clearRect(0, 0, size, size);
+    ctx.fillStyle = '#f8fafc';
+    ctx.fillRect(0, 0, size, size);
+
+    // 获取对象边界
+    const bounds = this.getObjectBounds(obj);
+    const padding = 4;
+    const availableSize = size - padding * 2;
+
+    // 计算缩放比例
+    const scaleX = availableSize / Math.max(bounds.width, 1);
+    const scaleY = availableSize / Math.max(bounds.height, 1);
+    const scale = Math.min(scaleX, scaleY, 1);
+
+    // 居中偏移
+    const offsetX = padding + (availableSize - bounds.width * scale) / 2 - bounds.x * scale;
+    const offsetY = padding + (availableSize - bounds.height * scale) / 2 - bounds.y * scale;
+
+    ctx.save();
+    ctx.translate(offsetX, offsetY);
+    ctx.scale(scale, scale);
+
+    // 绘制对象（临时保存选中状态）
+    const tempSelectedId = this.selectedId;
+    this.selectedId = null;
+    this.drawObject(ctx, { ...obj, visible: true });
+    this.selectedId = tempSelectedId;
+
+    ctx.restore();
+  }
+
+  // 上移图层
+  private moveLayerUp(id: string): void {
+    const index = this.objects.findIndex(o => o.id === id);
+    if (index < this.objects.length - 1) {
+      this.saveHistory();
+      [this.objects[index], this.objects[index + 1]] = [this.objects[index + 1], this.objects[index]];
       this.renderCanvas();
       this.dispatchChangeEvent();
     }
+  }
+
+  // 下移图层
+  private moveLayerDown(id: string): void {
+    const index = this.objects.findIndex(o => o.id === id);
+    if (index > 0) {
+      this.saveHistory();
+      [this.objects[index], this.objects[index - 1]] = [this.objects[index - 1], this.objects[index]];
+      this.renderCanvas();
+      this.dispatchChangeEvent();
+    }
+  }
+
+  // 置顶图层
+  private moveLayerToTop(id: string): void {
+    const index = this.objects.findIndex(o => o.id === id);
+    if (index >= 0 && index < this.objects.length - 1) {
+      this.saveHistory();
+      const obj = this.objects.splice(index, 1)[0];
+      this.objects.push(obj);
+      this.renderCanvas();
+      this.dispatchChangeEvent();
+    }
+  }
+
+  // 置底图层
+  private moveLayerToBottom(id: string): void {
+    const index = this.objects.findIndex(o => o.id === id);
+    if (index > 0) {
+      this.saveHistory();
+      const obj = this.objects.splice(index, 1)[0];
+      this.objects.unshift(obj);
+      this.renderCanvas();
+      this.dispatchChangeEvent();
+    }
+  }
+
+  // 切换图层可见性
+  private toggleLayerVisibility(id: string): void {
+    const obj = this.objects.find(o => o.id === id);
+    if (obj) {
+      this.saveHistory();
+      obj.visible = obj.visible === false ? true : false;
+      this.renderCanvas();
+      this.dispatchChangeEvent();
+    }
+  }
+
+  // 切换图层锁定
+  private toggleLayerLock(id: string): void {
+    const obj = this.objects.find(o => o.id === id);
+    if (obj) {
+      this.saveHistory();
+      obj.locked = !obj.locked;
+      this.renderCanvas();
+      this.dispatchChangeEvent();
+    }
+  }
+
+  // ========== 组合/解组功能 ==========
+
+  // 转换子对象坐标为相对坐标（组合时使用）
+  private convertToRelativeCoords(obj: CanvasObject, offsetX: number, offsetY: number): CanvasObject {
+    const result = { ...obj, x: obj.x - offsetX, y: obj.y - offsetY };
+    // 处理 LINE 和 ARROW 的 x2, y2
+    if (obj.type === 'LINE' || obj.type === 'ARROW') {
+      const lineObj = result as LineObject | ArrowObject;
+      lineObj.x2 = (obj as LineObject | ArrowObject).x2 - offsetX;
+      lineObj.y2 = (obj as LineObject | ArrowObject).y2 - offsetY;
+    }
+    // 处理 PATH 的 points
+    if (obj.type === 'PATH') {
+      const pathObj = result as PathObject;
+      pathObj.points = (obj as PathObject).points.map(pt => ({ x: pt.x - offsetX, y: pt.y - offsetY }));
+    }
+    return result;
+  }
+
+  // 转换子对象坐标为绝对坐标（解组时使用）
+  private convertToAbsoluteCoords(obj: CanvasObject, offsetX: number, offsetY: number): CanvasObject {
+    const result = { ...obj, x: obj.x + offsetX, y: obj.y + offsetY, id: this.generateId() };
+    // 处理 LINE 和 ARROW 的 x2, y2
+    if (obj.type === 'LINE' || obj.type === 'ARROW') {
+      const lineObj = result as LineObject | ArrowObject;
+      lineObj.x2 = (obj as LineObject | ArrowObject).x2 + offsetX;
+      lineObj.y2 = (obj as LineObject | ArrowObject).y2 + offsetY;
+    }
+    // 处理 PATH 的 points
+    if (obj.type === 'PATH') {
+      const pathObj = result as PathObject;
+      pathObj.points = (obj as PathObject).points.map(pt => ({ x: pt.x + offsetX, y: pt.y + offsetY }));
+    }
+    return result;
+  }
+
+  // 组合选中对象
+  private groupSelected(): void {
+    if (this.selectedIds.size < 2) return;
+
+    this.saveHistory();
+    const ids = Array.from(this.selectedIds);
+    const children = this.objects.filter(o => ids.includes(o.id));
+    if (children.length < 2) return;
+
+    // 计算组合边界
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    children.forEach(obj => {
+      const bounds = this.getObjectBounds(obj);
+      minX = Math.min(minX, bounds.x);
+      minY = Math.min(minY, bounds.y);
+      maxX = Math.max(maxX, bounds.x + bounds.width);
+      maxY = Math.max(maxY, bounds.y + bounds.height);
+    });
+
+    // 创建组合对象，使用相对坐标
+    const groupObj: GroupObject = {
+      id: this.generateId(),
+      type: 'GROUP',
+      x: minX,
+      y: minY,
+      width: maxX - minX,
+      height: maxY - minY,
+      color: this.color,
+      lineWidth: this.lineWidth,
+      children: children.map(c => this.convertToRelativeCoords(c, minX, minY)),
+    };
+
+    // 移除原对象，添加组合
+    this.objects = this.objects.filter(o => !ids.includes(o.id));
+    this.objects.push(groupObj);
+    this.selectedIds.clear();
+    this.selectedId = groupObj.id;
+    this.renderCanvas();
+    this.updateUI();
+    this.dispatchChangeEvent();
+  }
+
+  // 解组选中对象
+  private ungroupSelected(): void {
+    if (!this.selectedId) return;
+    const obj = this.objects.find(o => o.id === this.selectedId);
+    if (!obj || obj.type !== 'GROUP') return;
+
+    this.saveHistory();
+    const groupObj = obj as GroupObject;
+    // 使用绝对坐标还原子对象
+    const children = groupObj.children.map(c => this.convertToAbsoluteCoords(c, groupObj.x, groupObj.y));
+
+    // 移除组合，添加子对象
+    this.objects = this.objects.filter(o => o.id !== this.selectedId);
+    this.objects.push(...children);
+    this.selectedId = null;
+    this.selectedIds.clear();
+    children.forEach(c => this.selectedIds.add(c.id));
+    this.renderCanvas();
+    this.updateUI();
+    this.dispatchChangeEvent();
+  }
+
+  // ========== 对齐/分布功能 ==========
+
+  // 获取选中对象列表
+  private getSelectedObjects(): CanvasObject[] {
+    if (this.selectedIds.size > 0) {
+      return this.objects.filter(o => this.selectedIds.has(o.id));
+    } else if (this.selectedId) {
+      const obj = this.objects.find(o => o.id === this.selectedId);
+      return obj ? [obj] : [];
+    }
+    return [];
+  }
+
+  // 左对齐
+  private alignLeft(): void {
+    const selected = this.getSelectedObjects();
+    if (selected.length < 2) return;
+    this.saveHistory();
+    const minX = Math.min(...selected.map(o => this.getObjectBounds(o).x));
+    selected.forEach(obj => {
+      const bounds = this.getObjectBounds(obj);
+      obj.x = obj.x + (minX - bounds.x);
+    });
+    this.renderCanvas();
+    this.dispatchChangeEvent();
+  }
+
+  // 水平居中对齐
+  private alignCenterH(): void {
+    const selected = this.getSelectedObjects();
+    if (selected.length < 2) return;
+    this.saveHistory();
+    const bounds = selected.map(o => this.getObjectBounds(o));
+    const minX = Math.min(...bounds.map(b => b.x));
+    const maxX = Math.max(...bounds.map(b => b.x + b.width));
+    const centerX = (minX + maxX) / 2;
+    selected.forEach((obj, i) => {
+      const b = bounds[i];
+      obj.x = obj.x + (centerX - (b.x + b.width / 2));
+    });
+    this.renderCanvas();
+    this.dispatchChangeEvent();
+  }
+
+  // 右对齐
+  private alignRight(): void {
+    const selected = this.getSelectedObjects();
+    if (selected.length < 2) return;
+    this.saveHistory();
+    const bounds = selected.map(o => this.getObjectBounds(o));
+    const maxX = Math.max(...bounds.map(b => b.x + b.width));
+    selected.forEach((obj, i) => {
+      const b = bounds[i];
+      obj.x = obj.x + (maxX - (b.x + b.width));
+    });
+    this.renderCanvas();
+    this.dispatchChangeEvent();
   }
 
   // 删除选中对象
@@ -606,6 +1307,13 @@ export class CanvasDrawingEditor extends HTMLElement {
       this.saveHistory();
       this.objects = this.objects.filter(o => o.id !== this.selectedId);
       this.selectedId = null;
+      this.renderCanvas();
+      this.updateUI();
+      this.dispatchChangeEvent();
+    } else if (this.selectedIds.size > 0) {
+      this.saveHistory();
+      this.objects = this.objects.filter(o => !this.selectedIds.has(o.id));
+      this.selectedIds.clear();
       this.renderCanvas();
       this.updateUI();
       this.dispatchChangeEvent();
@@ -647,6 +1355,19 @@ export class CanvasDrawingEditor extends HTMLElement {
     }
   }
 
+  // 全选
+  private selectAll(): void {
+    this.selectedId = null;
+    this.selectedIds.clear();
+    this.objects.forEach(obj => {
+      if (obj.visible !== false) {
+        this.selectedIds.add(obj.id);
+      }
+    });
+    this.renderCanvas();
+    this.updateUI();
+  }
+
   // 派发变化事件
   private dispatchChangeEvent(): void {
     this.dispatchEvent(new CustomEvent('editor-change', {
@@ -654,10 +1375,22 @@ export class CanvasDrawingEditor extends HTMLElement {
       composed: true,
       detail: { objects: this.objects }
     }));
+    // 如果图层面板可见，刷新列表
+    if (this.layerPanelVisible) {
+      this.renderLayerList();
+    }
   }
 
   // 键盘事件处理
   private handleKeyDown(e: KeyboardEvent): void {
+    // 空格键按下：启用平移模式
+    if (e.code === 'Space' && !this.isTextInputVisible) {
+      e.preventDefault();
+      this.isSpacePressed = true;
+      this.canvas.style.cursor = 'grab';
+      return;
+    }
+
     if (this.isTextInputVisible) return;
 
     // 如果焦点在输入框或文本域中，不处理快捷键
@@ -666,10 +1399,38 @@ export class CanvasDrawingEditor extends HTMLElement {
       return;
     }
 
+    // Ctrl+Shift+Z 或 Ctrl+Y: 重做
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'z'))) {
+      e.preventDefault();
+      this.redo();
+      return;
+    }
+
     // Ctrl+Z: 撤销
-    if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
       e.preventDefault();
       this.undo();
+      return;
+    }
+
+    // Ctrl+G: 组合
+    if ((e.ctrlKey || e.metaKey) && e.key === 'g' && !e.shiftKey) {
+      e.preventDefault();
+      this.groupSelected();
+      return;
+    }
+
+    // Ctrl+Shift+U: 解组
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'u') {
+      e.preventDefault();
+      this.ungroupSelected();
+      return;
+    }
+
+    // Ctrl+A: 全选
+    if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+      e.preventDefault();
+      this.selectAll();
       return;
     }
 
@@ -692,7 +1453,7 @@ export class CanvasDrawingEditor extends HTMLElement {
     }
 
     // Delete/Backspace: 删除
-    if ((e.key === 'Delete' || e.key === 'Backspace') && this.selectedId) {
+    if ((e.key === 'Delete' || e.key === 'Backspace') && (this.selectedId || this.selectedIds.size > 0)) {
       e.preventDefault();
       this.deleteSelected();
       return;
@@ -714,16 +1475,33 @@ export class CanvasDrawingEditor extends HTMLElement {
         case 'o':
           this.setTool('CIRCLE');
           break;
+        case 'l':
+          this.setTool('LINE');
+          break;
+        case 'a':
+          this.setTool('ARROW');
+          break;
         case 't':
           this.setTool('TEXT');
           break;
         case 'escape':
           this.selectedId = null;
+          this.selectedIds.clear();
           this.hideTextInput();
           this.renderCanvas();
           this.updateUI();
           break;
       }
+    }
+  }
+
+  // 键盘释放事件处理
+  private handleKeyUp(e: KeyboardEvent): void {
+    // 空格键释放：退出平移模式
+    if (e.code === 'Space') {
+      this.isSpacePressed = false;
+      this.isPanning = false;
+      this.canvas.style.cursor = this.tool === 'SELECT' ? 'default' : 'crosshair';
     }
   }
 
@@ -804,6 +1582,44 @@ export class CanvasDrawingEditor extends HTMLElement {
         btn.classList.remove('active');
       }
     });
+
+    // 更新形状工具组的图标和选中状态
+    const shapeTools = ['RECTANGLE', 'CIRCLE', 'LINE', 'ARROW', 'POLYGON'];
+    const shapesGroup = this.shadow.querySelector('.tool-group[data-group="shapes"]');
+    if (shapesGroup) {
+      const groupBtn = shapesGroup.querySelector('.tool-group-btn');
+      if (groupBtn) {
+        const isShapeTool = shapeTools.includes(this.tool);
+        if (isShapeTool) {
+          // 更新图标为当前选择的形状
+          const svgIcon = groupBtn.querySelector('.icon');
+          if (svgIcon) {
+            svgIcon.innerHTML = this.getShapeIconPath(this.tool);
+          }
+          groupBtn.classList.add('active');
+        } else {
+          groupBtn.classList.remove('active');
+        }
+      }
+    }
+  }
+
+  // 获取形状工具的图标路径
+  private getShapeIconPath(tool: ToolType): string {
+    switch (tool) {
+      case 'RECTANGLE':
+        return '<rect x="3" y="3" width="18" height="18" rx="2"/>';
+      case 'CIRCLE':
+        return '<circle cx="12" cy="12" r="10"/>';
+      case 'LINE':
+        return '<line x1="5" y1="19" x2="19" y2="5"/>';
+      case 'ARROW':
+        return '<line x1="5" y1="19" x2="19" y2="5"/><polyline points="9 5 19 5 19 15"/>';
+      case 'POLYGON':
+        return '<polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/>';
+      default:
+        return '<rect x="3" y="3" width="18" height="18" rx="2"/>';
+    }
   }
 
   // 隐藏文本输入
@@ -879,9 +1695,20 @@ export class CanvasDrawingEditor extends HTMLElement {
       this.submitText();
     }
 
+    // 空格键按下时，开始平移画布
+    if (this.isSpacePressed) {
+      this.isPanning = true;
+      this.panStart = screenPos;
+      this.canvas.style.cursor = 'grabbing';
+      return;
+    }
+
     if (this.tool === 'SELECT') {
+      // Ctrl 和 Shift 都支持多选
+      const isMultiSelect = (e as MouseEvent).shiftKey || (e as MouseEvent).ctrlKey || (e as MouseEvent).metaKey;
+
       // 检查是否点击调整大小手柄
-      if (this.selectedId) {
+      if (this.selectedId && !isMultiSelect) {
         const selectedObj = this.objects.find(o => o.id === this.selectedId);
         if (selectedObj) {
           const handle = this.getResizeHandleAtPoint(selectedObj, x, y);
@@ -896,19 +1723,53 @@ export class CanvasDrawingEditor extends HTMLElement {
         }
       }
 
-      // 查找点击的对象
-      const clickedObject = [...this.objects].reverse().find(obj => this.isHit(obj, x, y));
+      // 查找点击的对象（只检查可见对象）
+      const clickedObject = [...this.objects].reverse().find(obj => obj.visible !== false && this.isHit(obj, x, y));
 
       if (clickedObject) {
-        this.selectedId = clickedObject.id;
-        this.dragOffset = { x: x - clickedObject.x, y: y - clickedObject.y };
-        this.saveHistory();
+        if (isMultiSelect) {
+          // Ctrl/Shift+点击：多选模式
+          if (this.selectedIds.has(clickedObject.id)) {
+            // 如果已选中，取消选中
+            this.selectedIds.delete(clickedObject.id);
+            if (this.selectedId === clickedObject.id) {
+              this.selectedId = null;
+            }
+          } else {
+            // 添加到多选
+            if (this.selectedId && !this.selectedIds.has(this.selectedId)) {
+              this.selectedIds.add(this.selectedId);
+            }
+            this.selectedIds.add(clickedObject.id);
+            this.selectedId = null;
+          }
+        } else if (this.selectedIds.size > 0 && this.selectedIds.has(clickedObject.id)) {
+          // 点击已多选的对象：开始多选拖动
+          this.isMultiDragging = true;
+          this.multiDragStart = { x, y };
+          this.saveHistory();
+        } else {
+          // 普通点击：单选
+          this.selectedId = clickedObject.id;
+          this.selectedIds.clear();
+          this.dragOffset = { x: x - clickedObject.x, y: y - clickedObject.y };
+          this.saveHistory();
+        }
         this.updateUI();
       } else {
-        // 开始拖拽画布
-        this.selectedId = null;
-        this.isPanning = true;
-        this.panStart = screenPos;
+        // 空白区域点击
+        if (isMultiSelect) {
+          // Ctrl/Shift + 空白区域拖拽：平移画布
+          this.isPanning = true;
+          this.panStart = screenPos;
+          this.canvas.style.cursor = 'grabbing';
+        } else {
+          // 开始框选
+          this.isSelecting = true;
+          this.selectionRect = { x, y, width: 0, height: 0 };
+          this.selectedId = null;
+          this.selectedIds.clear();
+        }
         this.updateUI();
       }
     } else if (this.tool === 'TEXT') {
@@ -926,6 +1787,13 @@ export class CanvasDrawingEditor extends HTMLElement {
         this.currentObject = { id, type: 'CIRCLE', x, y, radius: 0, color: this.color, lineWidth: this.lineWidth };
       } else if (this.tool === 'PENCIL') {
         this.currentObject = { id, type: 'PATH', x, y, points: [{ x, y }], color: this.color, lineWidth: this.lineWidth };
+      } else if (this.tool === 'LINE') {
+        this.currentObject = { id, type: 'LINE', x, y, x2: x, y2: y, color: this.color, lineWidth: this.lineWidth } as LineObject;
+      } else if (this.tool === 'ARROW') {
+        this.currentObject = { id, type: 'ARROW', x, y, x2: x, y2: y, color: this.color, lineWidth: this.lineWidth } as ArrowObject;
+      } else if (this.tool === 'POLYGON') {
+        // 默认创建六边形
+        this.currentObject = { id, type: 'POLYGON', x, y, radius: 0, sides: 6, color: this.color, lineWidth: this.lineWidth } as PolygonObject;
       }
     }
 
@@ -1014,7 +1882,44 @@ export class CanvasDrawingEditor extends HTMLElement {
       return;
     }
 
-    // 移动选中对象
+    // 框选模式
+    if (this.isSelecting && this.selectionRect) {
+      this.selectionRect.width = x - this.selectionRect.x;
+      this.selectionRect.height = y - this.selectionRect.y;
+      this.renderCanvas();
+      return;
+    }
+
+    // 多选拖动模式
+    if (this.isMultiDragging && this.selectedIds.size > 0) {
+      const dx = x - this.multiDragStart.x;
+      const dy = y - this.multiDragStart.y;
+
+      this.selectedIds.forEach(id => {
+        const obj = this.objects.find(o => o.id === id);
+        if (obj) {
+          if (obj.type === 'PATH') {
+            const p = obj as PathObject;
+            p.points = p.points.map(pt => ({ x: pt.x + dx, y: pt.y + dy }));
+          } else if (obj.type === 'LINE' || obj.type === 'ARROW') {
+            const lineObj = obj as LineObject | ArrowObject;
+            lineObj.x += dx;
+            lineObj.y += dy;
+            lineObj.x2 += dx;
+            lineObj.y2 += dy;
+          } else {
+            obj.x += dx;
+            obj.y += dy;
+          }
+        }
+      });
+
+      this.multiDragStart = { x, y };
+      this.renderCanvas();
+      return;
+    }
+
+    // 移动选中对象（单选）
     if (this.tool === 'SELECT' && this.selectedId) {
       const obj = this.objects.find(o => o.id === this.selectedId);
       if (obj) {
@@ -1040,6 +1945,15 @@ export class CanvasDrawingEditor extends HTMLElement {
         (this.currentObject as CircleObject).radius = radius;
       } else if (this.currentObject.type === 'PATH') {
         (this.currentObject as PathObject).points.push({ x, y });
+      } else if (this.currentObject.type === 'LINE') {
+        (this.currentObject as LineObject).x2 = x;
+        (this.currentObject as LineObject).y2 = y;
+      } else if (this.currentObject.type === 'ARROW') {
+        (this.currentObject as ArrowObject).x2 = x;
+        (this.currentObject as ArrowObject).y2 = y;
+      } else if (this.currentObject.type === 'POLYGON') {
+        const radius = Math.sqrt(Math.pow(x - this.currentObject.x, 2) + Math.pow(y - this.currentObject.y, 2));
+        (this.currentObject as PolygonObject).radius = radius;
       }
       this.renderCanvas();
     }
@@ -1047,6 +1961,23 @@ export class CanvasDrawingEditor extends HTMLElement {
 
   // 画布鼠标抬起
   private handleCanvasPointerUp(): void {
+    // 结束框选
+    if (this.isSelecting && this.selectionRect) {
+      const rect = this.normalizeRect(this.selectionRect);
+      // 选中框内的所有对象
+      this.selectedIds.clear();
+      this.objects.forEach(obj => {
+        if (obj.visible === false) return;
+        const bounds = this.getObjectBounds(obj);
+        if (this.rectsIntersect(rect, bounds)) {
+          this.selectedIds.add(obj.id);
+        }
+      });
+      this.selectedId = null;
+      this.selectionRect = null;
+      this.isSelecting = false;
+    }
+
     this.isDragging = false;
     this.dragStart = null;
     this.isResizing = false;
@@ -1054,6 +1985,14 @@ export class CanvasDrawingEditor extends HTMLElement {
     this.resizeStartBounds = null;
     this.resizeOriginalObject = null;
     this.isPanning = false;
+    this.isMultiDragging = false;
+
+    // 恢复光标
+    if (this.isSpacePressed) {
+      this.canvas.style.cursor = 'grab';
+    } else {
+      this.canvas.style.cursor = this.tool === 'SELECT' ? 'default' : 'crosshair';
+    }
 
     if (this.currentObject) {
       this.objects.push(this.currentObject);
@@ -1063,6 +2002,21 @@ export class CanvasDrawingEditor extends HTMLElement {
 
     this.renderCanvas();
     this.updateUI();
+  }
+
+  // 标准化矩形（处理负宽高）
+  private normalizeRect(rect: { x: number; y: number; width: number; height: number }): { x: number; y: number; width: number; height: number } {
+    return {
+      x: rect.width < 0 ? rect.x + rect.width : rect.x,
+      y: rect.height < 0 ? rect.y + rect.height : rect.y,
+      width: Math.abs(rect.width),
+      height: Math.abs(rect.height)
+    };
+  }
+
+  // 判断两个矩形是否相交
+  private rectsIntersect(a: { x: number; y: number; width: number; height: number }, b: { x: number; y: number; width: number; height: number }): boolean {
+    return !(a.x + a.width < b.x || b.x + b.width < a.x || a.y + a.height < b.y || b.y + b.height < a.y);
   }
 
   // 双击编辑文本
@@ -1115,19 +2069,48 @@ export class CanvasDrawingEditor extends HTMLElement {
       }
     }
 
+    // 绘制多选对象的高亮框
+    if (this.selectedIds.size > 0 && this.tool === 'SELECT') {
+      this.selectedIds.forEach(id => {
+        const obj = this.objects.find(o => o.id === id);
+        if (obj) {
+          const bounds = this.getObjectBounds(obj);
+          this.ctx.strokeStyle = 'rgba(139, 92, 246, 0.8)';
+          this.ctx.lineWidth = 2 / this.scale;
+          this.ctx.setLineDash([5 / this.scale, 5 / this.scale]);
+          this.ctx.strokeRect(bounds.x - 2, bounds.y - 2, bounds.width + 4, bounds.height + 4);
+          this.ctx.setLineDash([]);
+        }
+      });
+    }
+
+    // 绘制框选矩形
+    if (this.isSelecting && this.selectionRect) {
+      this.ctx.strokeStyle = 'rgba(139, 92, 246, 0.8)';
+      this.ctx.fillStyle = 'rgba(139, 92, 246, 0.1)';
+      this.ctx.lineWidth = 1 / this.scale;
+      this.ctx.setLineDash([5 / this.scale, 5 / this.scale]);
+      this.ctx.strokeRect(this.selectionRect.x, this.selectionRect.y, this.selectionRect.width, this.selectionRect.height);
+      this.ctx.fillRect(this.selectionRect.x, this.selectionRect.y, this.selectionRect.width, this.selectionRect.height);
+      this.ctx.setLineDash([]);
+    }
+
     this.ctx.restore();
   }
 
   // 绘制单个对象
   private drawObject(ctx: CanvasRenderingContext2D, obj: CanvasObject): void {
+    // 检查可见性
+    if (obj.visible === false) return;
+
     ctx.beginPath();
     ctx.strokeStyle = obj.color;
     ctx.lineWidth = obj.lineWidth;
     ctx.fillStyle = obj.color;
 
-    // 选中高亮
-    if (obj.id === this.selectedId) {
-      ctx.shadowColor = 'rgba(0, 100, 255, 0.5)';
+    // 选中高亮（单选或多选）
+    if (obj.id === this.selectedId || this.selectedIds.has(obj.id)) {
+      ctx.shadowColor = 'rgba(139, 92, 246, 0.5)';
       ctx.shadowBlur = 10;
     } else {
       ctx.shadowBlur = 0;
@@ -1199,6 +2182,67 @@ export class CanvasDrawingEditor extends HTMLElement {
           };
           img.src = imgObj.dataUrl;
         }
+        break;
+      }
+      case 'LINE': {
+        const l = obj as LineObject;
+        ctx.beginPath();
+        ctx.moveTo(l.x, l.y);
+        ctx.lineTo(l.x2, l.y2);
+        ctx.stroke();
+        break;
+      }
+      case 'ARROW': {
+        const a = obj as ArrowObject;
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(a.x2, a.y2);
+        ctx.stroke();
+        // 绘制箭头头部
+        const angle = Math.atan2(a.y2 - a.y, a.x2 - a.x);
+        const headLength = 15;
+        ctx.beginPath();
+        ctx.moveTo(a.x2, a.y2);
+        ctx.lineTo(a.x2 - headLength * Math.cos(angle - Math.PI / 6), a.y2 - headLength * Math.sin(angle - Math.PI / 6));
+        ctx.moveTo(a.x2, a.y2);
+        ctx.lineTo(a.x2 - headLength * Math.cos(angle + Math.PI / 6), a.y2 - headLength * Math.sin(angle + Math.PI / 6));
+        ctx.stroke();
+        break;
+      }
+      case 'POLYGON': {
+        const pg = obj as PolygonObject;
+        if (pg.radius <= 0) break;
+        ctx.beginPath();
+        for (let i = 0; i < pg.sides; i++) {
+          const angle = (2 * Math.PI / pg.sides) * i - Math.PI / 2;
+          const px = pg.x + pg.radius * Math.cos(angle);
+          const py = pg.y + pg.radius * Math.sin(angle);
+          if (i === 0) {
+            ctx.moveTo(px, py);
+          } else {
+            ctx.lineTo(px, py);
+          }
+        }
+        ctx.closePath();
+        ctx.stroke();
+        break;
+      }
+      case 'GROUP': {
+        const g = obj as GroupObject;
+        // 绘制组合中的所有子对象（将相对坐标转换为绝对坐标）
+        g.children.forEach(child => {
+          const offsetChild = { ...child, x: child.x + g.x, y: child.y + g.y };
+          // 处理 LINE 和 ARROW 的 x2, y2
+          if (child.type === 'LINE' || child.type === 'ARROW') {
+            (offsetChild as LineObject | ArrowObject).x2 = (child as LineObject | ArrowObject).x2 + g.x;
+            (offsetChild as LineObject | ArrowObject).y2 = (child as LineObject | ArrowObject).y2 + g.y;
+          }
+          // 处理 PATH 的 points
+          if (child.type === 'PATH') {
+            (offsetChild as PathObject).points = (child as PathObject).points.map(pt => ({ x: pt.x + g.x, y: pt.y + g.y }));
+          }
+          this.drawObject(ctx, offsetChild as CanvasObject);
+        });
         break;
       }
     }
@@ -1389,7 +2433,22 @@ export class CanvasDrawingEditor extends HTMLElement {
     // 更新选中状态显示
     const selectionInfo = this.shadow.querySelector('.selection-info');
     if (selectionInfo) {
-      if (this.selectedId) {
+      if (this.selectedIds.size > 0) {
+        // 多选显示
+        selectionInfo.innerHTML = `
+          <span class="selection-label">${this.t('multiSelected').replace('{count}', String(this.selectedIds.size))}</span>
+          <button class="delete-btn" title="${this.t('delete')}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+            </svg>
+          </button>
+        `;
+        selectionInfo.classList.add('visible');
+        const deleteBtn = selectionInfo.querySelector('.delete-btn');
+        if (deleteBtn) {
+          deleteBtn.addEventListener('click', () => this.deleteSelected());
+        }
+      } else if (this.selectedId) {
         const selectedObj = this.objects.find(o => o.id === this.selectedId);
         if (selectedObj) {
           const typeLabels: Record<string, string> = {
@@ -1401,8 +2460,8 @@ export class CanvasDrawingEditor extends HTMLElement {
           };
           const typeLabel = typeLabels[selectedObj.type] || selectedObj.type;
           selectionInfo.innerHTML = `
-            <span class="selection-label">已选择: ${typeLabel}</span>
-            <button class="delete-btn" title="删除">
+            <span class="selection-label">${this.t('selected')}: ${typeLabel}</span>
+            <button class="delete-btn" title="${this.t('delete')}">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
               </svg>
@@ -1424,6 +2483,12 @@ export class CanvasDrawingEditor extends HTMLElement {
     const undoBtn = this.shadow.querySelector('.undo-btn') as HTMLButtonElement;
     if (undoBtn) {
       undoBtn.disabled = this.history.length === 0;
+    }
+
+    // 更新重做按钮状态
+    const redoBtn = this.shadow.querySelector('.redo-btn') as HTMLButtonElement;
+    if (redoBtn) {
+      redoBtn.disabled = this.redoHistory.length === 0;
     }
 
     // 更新空画布提示显示
@@ -1612,6 +2677,7 @@ export class CanvasDrawingEditor extends HTMLElement {
   // 渲染 DOM 结构
   private render(): void {
     const themeColor = this.config.themeColor || DEFAULT_THEME_COLOR;
+    const tool = this.getToolConfig();
 
     this.shadow.innerHTML = `
       <style>${this.getStyles()}</style>
@@ -1620,29 +2686,161 @@ export class CanvasDrawingEditor extends HTMLElement {
         <div class="toolbar">
           ${this.createToolButton('SELECT', 'select-icon', this.t('select'))}
           <div class="divider"></div>
-          ${this.config.showPencil ? this.createToolButton('PENCIL', 'pencil-icon', this.t('pencil')) : ''}
-          ${this.config.showRectangle ? this.createToolButton('RECTANGLE', 'rect-icon', this.t('rectangle')) : ''}
-          ${this.config.showCircle ? this.createToolButton('CIRCLE', 'circle-icon', this.t('circle')) : ''}
-          ${this.config.showText ? this.createToolButton('TEXT', 'text-icon', this.t('text')) : ''}
-          ${this.config.showImage ? `
-            <label class="tool-btn" title="${this.t('insertImage')}">
-              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="3" width="18" height="18" rx="2"/>
-                <circle cx="8.5" cy="8.5" r="1.5"/>
-                <path d="M21 15l-5-5L5 21"/>
-              </svg>
-              <input type="file" accept="image/*" class="hidden image-input" />
-            </label>
+
+          <!-- 形状工具组 -->
+          ${(tool.rectangle || tool.circle || tool.line || tool.arrow || tool.polygon) ? `
+            <div class="tool-group" data-group="shapes">
+              <button class="tool-btn tool-group-btn" title="${this.t('shapes')}">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="3" width="18" height="18" rx="2"/>
+                </svg>
+                <span class="dropdown-indicator">▾</span>
+              </button>
+              <div class="tool-dropdown">
+                ${tool.rectangle ? `
+                  <button class="tool-btn dropdown-item" data-tool="RECTANGLE" title="${this.t('rectangle')}">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="3" y="3" width="18" height="18" rx="2"/>
+                    </svg>
+                    <span class="dropdown-label">${this.t('rectangle')}</span>
+                  </button>
+                ` : ''}
+                ${tool.circle ? `
+                  <button class="tool-btn dropdown-item" data-tool="CIRCLE" title="${this.t('circle')}">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"/>
+                    </svg>
+                    <span class="dropdown-label">${this.t('circle')}</span>
+                  </button>
+                ` : ''}
+                ${tool.line ? `
+                  <button class="tool-btn dropdown-item" data-tool="LINE" title="${this.t('line')}">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <line x1="5" y1="19" x2="19" y2="5"/>
+                    </svg>
+                    <span class="dropdown-label">${this.t('line')}</span>
+                  </button>
+                ` : ''}
+                ${tool.arrow ? `
+                  <button class="tool-btn dropdown-item" data-tool="ARROW" title="${this.t('arrow')}">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <line x1="5" y1="19" x2="19" y2="5"/>
+                      <polyline points="9 5 19 5 19 15"/>
+                    </svg>
+                    <span class="dropdown-label">${this.t('arrow')}</span>
+                  </button>
+                ` : ''}
+                ${tool.polygon ? `
+                  <button class="tool-btn dropdown-item" data-tool="POLYGON" title="${this.t('polygon')}">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/>
+                    </svg>
+                    <span class="dropdown-label">${this.t('polygon')}</span>
+                  </button>
+                ` : ''}
+              </div>
+            </div>
           ` : ''}
+
+          <!-- 画笔单独 -->
+          ${tool.pencil ? this.createToolButton('PENCIL', 'pencil-icon', this.t('pencil')) : ''}
+
+          <!-- 文本单独 -->
+          ${tool.text ? this.createToolButton('TEXT', 'text-icon', this.t('text')) : ''}
+
+          <!-- 媒体工具组（图片+图层） -->
+          ${(tool.image || tool.layers) ? `
+            <div class="tool-group" data-group="media">
+              <button class="tool-btn tool-group-btn" title="${this.t('media')}">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="3" width="18" height="18" rx="2"/>
+                  <circle cx="8.5" cy="8.5" r="1.5"/>
+                  <path d="M21 15l-5-5L5 21"/>
+                </svg>
+                <span class="dropdown-indicator">▾</span>
+              </button>
+              <div class="tool-dropdown">
+                ${tool.image ? `
+                  <label class="tool-btn dropdown-item" title="${this.t('insertImage')}">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="3" y="3" width="18" height="18" rx="2"/>
+                      <circle cx="8.5" cy="8.5" r="1.5"/>
+                      <path d="M21 15l-5-5L5 21"/>
+                    </svg>
+                    <span class="dropdown-label">${this.t('insertImage')}</span>
+                    <input type="file" accept="image/*" class="hidden image-input" />
+                  </label>
+                ` : ''}
+                ${tool.layers ? `
+                  <button class="tool-btn dropdown-item layers-btn" title="${this.t('layers')}">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+                      <polyline points="2 17 12 22 22 17"/>
+                      <polyline points="2 12 12 17 22 12"/>
+                    </svg>
+                    <span class="dropdown-label">${this.t('layers')}</span>
+                  </button>
+                ` : ''}
+              </div>
+            </div>
+          ` : ''}
+
+          <!-- 组合/解组工具组 -->
+          ${tool.group ? `
+            <div class="tool-group" data-group="group">
+              <button class="tool-btn tool-group-btn group-tool-btn" title="${this.t('group')}">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="3" width="7" height="7" rx="1"/>
+                  <rect x="14" y="3" width="7" height="7" rx="1"/>
+                  <rect x="3" y="14" width="7" height="7" rx="1"/>
+                  <rect x="14" y="14" width="7" height="7" rx="1"/>
+                </svg>
+                <span class="dropdown-indicator">▾</span>
+              </button>
+              <div class="tool-dropdown">
+                <button class="tool-btn dropdown-item group-btn" title="${this.t('group')}">
+                  <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="7" height="7" rx="1"/>
+                    <rect x="14" y="3" width="7" height="7" rx="1"/>
+                    <rect x="3" y="14" width="7" height="7" rx="1"/>
+                    <rect x="14" y="14" width="7" height="7" rx="1"/>
+                    <path d="M10 12h4M12 10v4"/>
+                  </svg>
+                  <span class="dropdown-label">${this.t('group')}</span>
+                </button>
+                <button class="tool-btn dropdown-item ungroup-btn" title="${this.t('ungroup')}">
+                  <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="7" height="7" rx="1"/>
+                    <rect x="14" y="3" width="7" height="7" rx="1"/>
+                    <rect x="3" y="14" width="7" height="7" rx="1"/>
+                    <rect x="14" y="14" width="7" height="7" rx="1"/>
+                    <path d="M9 12h6"/>
+                  </svg>
+                  <span class="dropdown-label">${this.t('ungroup')}</span>
+                </button>
+              </div>
+            </div>
+          ` : ''}
+
           <div class="divider"></div>
-          <button class="tool-btn undo-btn" title="${this.t('undo')}" disabled>
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M1 4v6h6"/>
-              <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
-            </svg>
-          </button>
+          ${tool.undo !== false ? `
+            <button class="tool-btn undo-btn" title="${this.t('undo')}" disabled>
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 4v6h6"/>
+                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+              </svg>
+            </button>
+          ` : ''}
+          ${tool.redo ? `
+            <button class="tool-btn redo-btn" title="${this.t('redo')}" disabled>
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M23 4v6h-6"/>
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+              </svg>
+            </button>
+          ` : ''}
           <div class="spacer"></div>
-          ${this.config.showColor ? `
+          ${tool.color ? `
             <input type="color" class="color-picker" value="${this.color}" title="${this.t('colorPicker')}" />
           ` : ''}
         </div>
@@ -1656,7 +2854,29 @@ export class CanvasDrawingEditor extends HTMLElement {
               <div class="selection-info"></div>
             </div>
             <div class="top-bar-right">
-              ${this.config.showZoom ? `
+              ${tool.align ? `
+                <div class="align-controls">
+                  <button class="align-btn align-left-btn" title="${this.t('alignLeft')}">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/>
+                      <line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/>
+                    </svg>
+                  </button>
+                  <button class="align-btn align-center-btn" title="${this.t('alignCenter')}">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <line x1="18" y1="10" x2="6" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/>
+                      <line x1="21" y1="14" x2="3" y2="14"/><line x1="18" y1="18" x2="6" y2="18"/>
+                    </svg>
+                  </button>
+                  <button class="align-btn align-right-btn" title="${this.t('alignRight')}">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <line x1="21" y1="10" x2="7" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/>
+                      <line x1="21" y1="14" x2="3" y2="14"/><line x1="21" y1="18" x2="7" y2="18"/>
+                    </svg>
+                  </button>
+                </div>
+              ` : ''}
+              ${tool.zoom ? `
                 <div class="zoom-controls">
                   <button class="zoom-btn zoom-out-btn" title="${this.t('zoomOut')}">
                     <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1671,9 +2891,9 @@ export class CanvasDrawingEditor extends HTMLElement {
                   </button>
                 </div>
               ` : ''}
-              ${(this.config.showExport || this.config.showImport || this.config.showDownload || this.config.showClear) ? `
+              ${(tool.exportJson || tool.importJson || tool.download || tool.clear) ? `
                 <div class="file-controls">
-                  ${this.config.showExport ? `
+                  ${tool.exportJson ? `
                     <button class="file-btn save-json-btn" title="${this.t('saveProject')}">
                       <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
@@ -1681,7 +2901,7 @@ export class CanvasDrawingEditor extends HTMLElement {
                       </svg>
                     </button>
                   ` : ''}
-                  ${this.config.showImport ? `
+                  ${tool.importJson ? `
                     <label class="file-btn" title="${this.t('loadProject')}">
                       <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>
@@ -1689,14 +2909,14 @@ export class CanvasDrawingEditor extends HTMLElement {
                       <input type="file" accept=".json" class="hidden load-json-input" />
                     </label>
                   ` : ''}
-                  ${this.config.showDownload ? `
+                  ${tool.download ? `
                     <button class="file-btn export-png-btn" title="${this.t('exportPng')}">
                       <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
                       </svg>
                     </button>
                   ` : ''}
-                  ${this.config.showClear ? `
+                  ${tool.clear ? `
                     <div class="clear-btn-wrapper">
                       <button class="file-btn clear-canvas-btn" title="${this.t('clearCanvas')}">
                         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1741,6 +2961,17 @@ export class CanvasDrawingEditor extends HTMLElement {
               <div class="context-menu-item context-menu-item-danger" data-action="hotzone-remove" style="display: none;">${this.t('hotzoneRemove')}</div>
             </div>
           </div>
+
+          <!-- 图层面板 -->
+          ${tool.layers ? `
+            <div class="layer-panel" style="display: none;">
+              <div class="layer-panel-header">
+                <span>${this.t('layers')}</span>
+                <button class="layer-panel-close">&times;</button>
+              </div>
+              <div class="layer-panel-list"></div>
+            </div>
+          ` : ''}
         </div>
 
         <!-- 热区配置抽屉 -->
@@ -1831,19 +3062,81 @@ export class CanvasDrawingEditor extends HTMLElement {
       undoBtn.addEventListener('click', () => this.undo());
     }
 
+    // 重做按钮
+    const redoBtn = this.shadow.querySelector('.redo-btn');
+    if (redoBtn) {
+      redoBtn.addEventListener('click', () => this.redo());
+    }
+
+    // 图层按钮
+    const layersBtn = this.shadow.querySelector('.layers-btn');
+    if (layersBtn) {
+      layersBtn.addEventListener('click', () => this.toggleLayerPanel());
+    }
+
+    // 图层面板关闭按钮
+    const layerPanelClose = this.shadow.querySelector('.layer-panel-close');
+    if (layerPanelClose) {
+      layerPanelClose.addEventListener('click', () => this.toggleLayerPanel());
+    }
+
+    // 组合按钮
+    const groupBtn = this.shadow.querySelector('.group-btn');
+    if (groupBtn) {
+      groupBtn.addEventListener('click', () => this.groupSelected());
+    }
+
+    // 解组按钮
+    const ungroupBtn = this.shadow.querySelector('.ungroup-btn');
+    if (ungroupBtn) {
+      ungroupBtn.addEventListener('click', () => this.ungroupSelected());
+    }
+
+    // 对齐按钮
+    const alignLeftBtn = this.shadow.querySelector('.align-left-btn');
+    const alignCenterBtn = this.shadow.querySelector('.align-center-btn');
+    const alignRightBtn = this.shadow.querySelector('.align-right-btn');
+    if (alignLeftBtn) alignLeftBtn.addEventListener('click', () => this.alignLeft());
+    if (alignCenterBtn) alignCenterBtn.addEventListener('click', () => this.alignCenterH());
+    if (alignRightBtn) alignRightBtn.addEventListener('click', () => this.alignRight());
+
     // 颜色选择器
     const colorPicker = this.shadow.querySelector('.color-picker') as HTMLInputElement;
     if (colorPicker) {
-      colorPicker.addEventListener('input', (e) => {
-        this.color = (e.target as HTMLInputElement).value;
-      });
+      const handleColorChange = (e: Event) => {
+        const newColor = (e.target as HTMLInputElement).value;
+        this.color = newColor;
+
+        // 如果有选中的对象，更新其颜色
+        if (this.selectedId) {
+          const obj = this.objects.find(o => o.id === this.selectedId);
+          if (obj) {
+            this.saveHistory();
+            obj.color = newColor;
+            this.renderCanvas();
+            this.dispatchChangeEvent();
+          }
+        } else if (this.selectedIds.size > 0) {
+          // 如果有多选对象，更新所有选中对象的颜色
+          this.saveHistory();
+          this.selectedIds.forEach(id => {
+            const obj = this.objects.find(o => o.id === id);
+            if (obj) {
+              obj.color = newColor;
+            }
+          });
+          this.renderCanvas();
+          this.dispatchChangeEvent();
+        }
+      };
+      colorPicker.addEventListener('input', handleColorChange);
+      colorPicker.addEventListener('change', handleColorChange);
     }
 
-    // 图片上传
-    const imageInput = this.shadow.querySelector('.image-input');
-    if (imageInput) {
-      imageInput.addEventListener('change', (e) => this.handleImageUpload(e));
-    }
+    // 图片上传（支持下拉菜单中的多个）
+    this.shadow.querySelectorAll('.image-input').forEach(input => {
+      input.addEventListener('change', (e) => this.handleImageUpload(e));
+    });
 
     // 缩放按钮
     const zoomInBtn = this.shadow.querySelector('.zoom-in-btn');
@@ -1910,6 +3203,9 @@ export class CanvasDrawingEditor extends HTMLElement {
       'rect-icon': '<rect x="3" y="3" width="18" height="18" rx="2"/>',
       'circle-icon': '<circle cx="12" cy="12" r="10"/>',
       'text-icon': '<path d="M4 7V4h16v3M9 20h6M12 4v16"/>',
+      'line-icon': '<line x1="5" y1="19" x2="19" y2="5"/>',
+      'arrow-icon': '<line x1="5" y1="19" x2="19" y2="5"/><polyline points="19 12 19 5 12 5"/>',
+      'polygon-icon': '<polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/>',
     };
     const isActive = this.tool === tool;
     return `
@@ -2021,6 +3317,74 @@ export class CanvasDrawingEditor extends HTMLElement {
         height: 20px;
       }
 
+      /* 工具组样式 */
+      .tool-group {
+        position: relative;
+      }
+
+      .tool-group-btn {
+        position: relative;
+      }
+
+      .dropdown-indicator {
+        position: absolute;
+        bottom: 4px;
+        right: 4px;
+        font-size: 8px;
+        opacity: 0.6;
+      }
+
+      .tool-dropdown {
+        display: none;
+        position: absolute;
+        left: 100%;
+        top: 0;
+        background: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+        padding: 8px;
+        min-width: 160px;
+        z-index: 100;
+      }
+
+      /* 添加透明连接区域，确保鼠标移动时不会丢失hover */
+      .tool-dropdown::before {
+        content: '';
+        position: absolute;
+        left: -12px;
+        top: 0;
+        width: 12px;
+        height: 100%;
+      }
+
+      .tool-group:hover .tool-dropdown,
+      .tool-group.active .tool-dropdown {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .tool-dropdown .tool-btn {
+        width: 100%;
+        height: 40px;
+        justify-content: flex-start;
+        padding: 0 12px;
+        gap: 8px;
+      }
+
+      .tool-dropdown .tool-btn.active {
+        transform: none;
+      }
+
+      .dropdown-item {
+        cursor: pointer;
+      }
+
+      .dropdown-label {
+        font-size: 13px;
+        white-space: nowrap;
+      }
+
       .divider {
         width: 32px;
         height: 1px;
@@ -2118,6 +3482,44 @@ export class CanvasDrawingEditor extends HTMLElement {
 
       .delete-btn:hover {
         color: #dc2626;
+      }
+
+      .align-controls {
+        display: flex;
+        align-items: center;
+        background: #f1f5f9;
+        border-radius: 8px;
+        padding: 4px;
+        gap: 2px;
+      }
+
+      .align-btn {
+        width: 32px;
+        height: 32px;
+        border: none;
+        background: transparent;
+        border-radius: 6px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #64748b;
+        transition: all 0.2s;
+      }
+
+      .align-btn:hover {
+        background: var(--theme-hover-bg);
+        color: var(--theme-color);
+      }
+
+      .align-btn:active {
+        background: var(--theme-color);
+        color: #ffffff;
+      }
+
+      .align-btn .icon {
+        width: 16px;
+        height: 16px;
       }
 
       .zoom-controls, .file-controls {
@@ -2323,6 +3725,107 @@ export class CanvasDrawingEditor extends HTMLElement {
 
       .context-menu-item-danger:hover {
         background: #fef2f2;
+      }
+
+      /* 图层面板 */
+      .layer-panel {
+        position: absolute;
+        top: 60px;
+        right: 10px;
+        width: 240px;
+        max-height: 300px;
+        background: #ffffff;
+        border-radius: 8px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        z-index: 150;
+        overflow: hidden;
+      }
+
+      .layer-panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 14px;
+        background: #f8fafc;
+        border-bottom: 1px solid #e2e8f0;
+        font-weight: 600;
+        font-size: 13px;
+        color: #334155;
+      }
+
+      .layer-panel-close {
+        background: none;
+        border: none;
+        font-size: 18px;
+        cursor: pointer;
+        color: #64748b;
+        padding: 0;
+        line-height: 1;
+      }
+
+      .layer-panel-close:hover {
+        color: #ef4444;
+      }
+
+      .layer-panel-list {
+        max-height: 250px;
+        overflow-y: auto;
+      }
+
+      .layer-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 12px;
+        min-height: 56px;
+        border-bottom: 1px solid #f1f5f9;
+        font-size: 12px;
+        cursor: pointer;
+        transition: background 0.15s;
+      }
+
+      .layer-item:hover {
+        background: #f8fafc;
+      }
+
+      .layer-item.selected {
+        background: #ede9fe;
+      }
+
+      .layer-item-thumbnail {
+        width: 40px;
+        height: 40px;
+        border-radius: 4px;
+        border: 1px solid #e2e8f0;
+        background: #f8fafc;
+        flex-shrink: 0;
+      }
+
+      .layer-item-name {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .layer-item-actions {
+        display: flex;
+        gap: 4px;
+      }
+
+      .layer-item-btn {
+        background: none;
+        border: none;
+        padding: 2px 4px;
+        cursor: pointer;
+        font-size: 12px;
+        color: #64748b;
+        border-radius: 3px;
+      }
+
+      .layer-item-btn:hover {
+        background: #e2e8f0;
+        color: #334155;
       }
 
       /* 热区配置抽屉 */

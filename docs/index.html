@@ -239,7 +239,7 @@
                 🎨 绘图工具集
               </h3>
               <p class="text-gray-600" data-i18n="features.drawing.desc">
-                支持画笔、矩形、圆形、文本等基础图形绘制，满足多样化创作需求。
+                支持画笔、矩形、圆形、线条、箭头、多边形、文本等基础图形绘制，满足多样化创作需求。
               </p>
             </div>
             <!-- 特性卡片 2: 图片支持 -->
@@ -304,7 +304,7 @@
                 ⚡ 零依赖与轻量
               </h3>
               <p class="text-gray-600" data-i18n="features.zerodep.desc">
-                纯 JavaScript 实现，gzip 后仅约 12KB，不引入任何框架负担。
+                纯 JavaScript 实现，gzip 后仅约 15KB，不引入任何框架负担。
               </p>
             </div>
             <!-- 特性卡片 7: 热区功能 -->
@@ -321,6 +321,70 @@
               </h3>
               <p class="text-gray-600" data-i18n="features.hotzone.desc">
                 给文本绑定动态变量，实现模板化设计，动态替换文本内容。
+              </p>
+            </div>
+            <!-- 特性卡片 8: 撤销/重做 -->
+            <div
+              class="bg-white p-8 rounded-xl shadow-lg hover:shadow-xl transition duration-300 border border-gray-100"
+            >
+              <div
+                class="flex items-center justify-center h-12 w-12 rounded-full bg-indigo-100 text-primary mb-4"
+              >
+                <i class="fas fa-undo-alt text-xl"> </i>
+              </div>
+              <h3 class="text-xl font-bold text-gray-900 mb-3" data-i18n="features.undo.title">
+                ↩️ 撤销/重做
+              </h3>
+              <p class="text-gray-600" data-i18n="features.undo.desc">
+                完整的历史记录支持，支持 Ctrl+Z 撤销和 Ctrl+Y 重做操作。
+              </p>
+            </div>
+            <!-- 特性卡片 9: 图层管理 -->
+            <div
+              class="bg-white p-8 rounded-xl shadow-lg hover:shadow-xl transition duration-300 border border-gray-100"
+            >
+              <div
+                class="flex items-center justify-center h-12 w-12 rounded-full bg-indigo-100 text-primary mb-4"
+              >
+                <i class="fas fa-layer-group text-xl"> </i>
+              </div>
+              <h3 class="text-xl font-bold text-gray-900 mb-3" data-i18n="features.layers.title">
+                📚 图层管理
+              </h3>
+              <p class="text-gray-600" data-i18n="features.layers.desc">
+                图层上移/下移/置顶/置底，可见性和锁定控制。
+              </p>
+            </div>
+            <!-- 特性卡片 10: 组合/解组 -->
+            <div
+              class="bg-white p-8 rounded-xl shadow-lg hover:shadow-xl transition duration-300 border border-gray-100"
+            >
+              <div
+                class="flex items-center justify-center h-12 w-12 rounded-full bg-indigo-100 text-primary mb-4"
+              >
+                <i class="fas fa-object-group text-xl"> </i>
+              </div>
+              <h3 class="text-xl font-bold text-gray-900 mb-3" data-i18n="features.group.title">
+                🔗 组合/解组
+              </h3>
+              <p class="text-gray-600" data-i18n="features.group.desc">
+                多选对象组合（Ctrl+G）和解组（Ctrl+Shift+G），整体移动和缩放。
+              </p>
+            </div>
+            <!-- 特性卡片 11: 对齐/分布 -->
+            <div
+              class="bg-white p-8 rounded-xl shadow-lg hover:shadow-xl transition duration-300 border border-gray-100"
+            >
+              <div
+                class="flex items-center justify-center h-12 w-12 rounded-full bg-indigo-100 text-primary mb-4"
+              >
+                <i class="fas fa-align-center text-xl"> </i>
+              </div>
+              <h3 class="text-xl font-bold text-gray-900 mb-3" data-i18n="features.align.title">
+                📐 对齐/分布
+              </h3>
+              <p class="text-gray-600" data-i18n="features.align.desc">
+                左/中/右对齐，水平/垂直分布，快速排列多个对象。
               </p>
             </div>
           </div>
@@ -605,6 +669,15 @@ export class AppModule { }
                   <tr><td class="px-4 py-3 border-b font-mono text-indigo-600">initial-data</td><td class="px-4 py-3 border-b">string</td><td class="px-4 py-3 border-b">-</td><td class="px-4 py-3 border-b" data-i18n="config.attr.initial">初始化 JSON 数据</td></tr>
                   <tr class="bg-gray-50"><td class="px-4 py-3 border-b font-mono text-orange-600">enable-hotzone</td><td class="px-4 py-3 border-b">boolean</td><td class="px-4 py-3 border-b">false</td><td class="px-4 py-3 border-b" data-i18n="config.attr.hotzone">启用热区功能（管理员模式）</td></tr>
                   <tr><td class="px-4 py-3 border-b font-mono text-orange-600">hotzone-data</td><td class="px-4 py-3 border-b">string</td><td class="px-4 py-3 border-b">-</td><td class="px-4 py-3 border-b" data-i18n="config.attr.hotzoneData">热区变量数据（JSON 格式）</td></tr>
+                  <tr class="bg-gray-50"><td class="px-4 py-3 border-b font-mono text-green-600">tool-config</td><td class="px-4 py-3 border-b">string</td><td class="px-4 py-3 border-b">-</td><td class="px-4 py-3 border-b" data-i18n="config.attr.toolConfig">工具配置对象（JSON 格式，推荐使用）</td></tr>
+                  <tr><td class="px-4 py-3 border-b font-mono text-indigo-600">show-line</td><td class="px-4 py-3 border-b">boolean</td><td class="px-4 py-3 border-b">true</td><td class="px-4 py-3 border-b" data-i18n="config.attr.line">显示线条工具</td></tr>
+                  <tr class="bg-gray-50"><td class="px-4 py-3 border-b font-mono text-indigo-600">show-arrow</td><td class="px-4 py-3 border-b">boolean</td><td class="px-4 py-3 border-b">true</td><td class="px-4 py-3 border-b" data-i18n="config.attr.arrow">显示箭头工具</td></tr>
+                  <tr><td class="px-4 py-3 border-b font-mono text-indigo-600">show-polygon</td><td class="px-4 py-3 border-b">boolean</td><td class="px-4 py-3 border-b">true</td><td class="px-4 py-3 border-b" data-i18n="config.attr.polygon">显示多边形工具</td></tr>
+                  <tr class="bg-gray-50"><td class="px-4 py-3 border-b font-mono text-indigo-600">show-undo</td><td class="px-4 py-3 border-b">boolean</td><td class="px-4 py-3 border-b">true</td><td class="px-4 py-3 border-b" data-i18n="config.attr.undo">显示撤销按钮</td></tr>
+                  <tr><td class="px-4 py-3 border-b font-mono text-indigo-600">show-redo</td><td class="px-4 py-3 border-b">boolean</td><td class="px-4 py-3 border-b">true</td><td class="px-4 py-3 border-b" data-i18n="config.attr.redo">显示重做按钮</td></tr>
+                  <tr class="bg-gray-50"><td class="px-4 py-3 border-b font-mono text-indigo-600">show-layers</td><td class="px-4 py-3 border-b">boolean</td><td class="px-4 py-3 border-b">true</td><td class="px-4 py-3 border-b" data-i18n="config.attr.layers">显示图层管理</td></tr>
+                  <tr><td class="px-4 py-3 border-b font-mono text-indigo-600">show-group</td><td class="px-4 py-3 border-b">boolean</td><td class="px-4 py-3 border-b">true</td><td class="px-4 py-3 border-b" data-i18n="config.attr.group">显示组合/解组</td></tr>
+                  <tr class="bg-gray-50"><td class="px-4 py-3 border-b font-mono text-indigo-600">show-align</td><td class="px-4 py-3 border-b">boolean</td><td class="px-4 py-3 border-b">true</td><td class="px-4 py-3 border-b" data-i18n="config.attr.align">显示对齐/分布</td></tr>
                 </tbody>
               </table>
             </div>
@@ -679,6 +752,22 @@ export class AppModule { }
               <div class="bg-gray-50 p-4 rounded-lg">
                 <h5 class="font-bold text-gray-700 mb-2" data-i18n="docs.objects.image">🖼️ 图片 (IMAGE)</h5>
                 <p class="text-sm text-gray-600"><code>width</code>, <code>height</code>, <code>dataUrl</code></p>
+              </div>
+              <div class="bg-gray-50 p-4 rounded-lg">
+                <h5 class="font-bold text-gray-700 mb-2" data-i18n="docs.objects.line">📏 线条 (LINE)</h5>
+                <p class="text-sm text-gray-600"><code>x2</code>, <code>y2</code></p>
+              </div>
+              <div class="bg-gray-50 p-4 rounded-lg">
+                <h5 class="font-bold text-gray-700 mb-2" data-i18n="docs.objects.arrow">➡️ 箭头 (ARROW)</h5>
+                <p class="text-sm text-gray-600"><code>x2</code>, <code>y2</code></p>
+              </div>
+              <div class="bg-gray-50 p-4 rounded-lg">
+                <h5 class="font-bold text-gray-700 mb-2" data-i18n="docs.objects.polygon">🔷 多边形 (POLYGON)</h5>
+                <p class="text-sm text-gray-600"><code>radius</code>, <code>sides</code></p>
+              </div>
+              <div class="bg-gray-50 p-4 rounded-lg">
+                <h5 class="font-bold text-gray-700 mb-2" data-i18n="docs.objects.group">📦 组合 (GROUP)</h5>
+                <p class="text-sm text-gray-600"><code>width</code>, <code>height</code>, <code>children</code></p>
               </div>
             </div>
           </div>
@@ -789,7 +878,7 @@ export class AppModule { }
           'features.subtitle': '核心能力',
           'features.title': '✨ 功能特性一览',
           'features.drawing.title': '🎨 绘图工具集',
-          'features.drawing.desc': '支持画笔、矩形、圆形、文本等基础图形绘制，满足多样化创作需求。',
+          'features.drawing.desc': '支持画笔、矩形、圆形、线条、箭头、多边形、文本等基础图形绘制，满足多样化创作需求。',
           'features.image.title': '🖼️ 图片导入与编辑',
           'features.image.desc': '轻松导入图片到画布，并进行后续的编辑和操作。',
           'features.zoom.title': '🔍 缩放与平移',
@@ -797,9 +886,17 @@ export class AppModule { }
           'features.export.title': '💾 灵活的导入导出',
           'features.export.desc': '支持 JSON 格式保存/加载项目，PNG 格式导出图像，以及一键清空画布。',
           'features.zerodep.title': '⚡ 零依赖与轻量',
-          'features.zerodep.desc': '纯 JavaScript 实现，gzip 后仅约 12KB，不引入任何框架负担。',
+          'features.zerodep.desc': '纯 JavaScript 实现，gzip 后仅约 15KB，不引入任何框架负担。',
           'features.hotzone.title': '🔥 热区功能',
           'features.hotzone.desc': '给文本绑定动态变量，实现模板化设计，动态替换文本内容。',
+          'features.undo.title': '↩️ 撤销/重做',
+          'features.undo.desc': '完整的历史记录支持，支持 Ctrl+Z 撤销和 Ctrl+Y 重做操作。',
+          'features.layers.title': '📚 图层管理',
+          'features.layers.desc': '图层上移/下移/置顶/置底，可见性和锁定控制。',
+          'features.group.title': '🔗 组合/解组',
+          'features.group.desc': '多选对象组合（Ctrl+G）和解组（Ctrl+Shift+G），整体移动和缩放。',
+          'features.align.title': '📐 对齐/分布',
+          'features.align.desc': '左/中/右对齐，水平/垂直分布，快速排列多个对象。',
           'install.subtitle': '快速上手',
           'install.title': '📦 安装与集成',
           'install.npm': '<i class="fab fa-npm mr-3 text-red-500"></i> NPM 安装',
@@ -831,7 +928,7 @@ export class AppModule { }
           'docs.event.close.desc': '编辑器关闭时触发。',
           'docs.objects.intro': '每个绘图对象都有以下基础属性：',
           'docs.objects.id': '唯一标识符',
-          'docs.objects.type.desc': '对象类型: RECTANGLE, CIRCLE, PATH, TEXT, IMAGE',
+          'docs.objects.type.desc': '对象类型: RECTANGLE, CIRCLE, PATH, TEXT, IMAGE, LINE, ARROW, POLYGON, GROUP',
           'docs.objects.xy': '坐标位置',
           'docs.objects.color': '颜色值 (如 #3b82f6)',
           'docs.objects.linewidth': '线条宽度',
@@ -841,6 +938,10 @@ export class AppModule { }
           'docs.objects.path.desc': '坐标数组',
           'docs.objects.text': '📝 文本 (TEXT)',
           'docs.objects.image': '🖼️ 图片 (IMAGE)',
+          'docs.objects.line': '📏 线条 (LINE)',
+          'docs.objects.arrow': '➡️ 箭头 (ARROW)',
+          'docs.objects.polygon': '🔷 多边形 (POLYGON)',
+          'docs.objects.group': '📦 组合 (GROUP)',
           'install.html.title': '<i class="fas fa-code mr-3 text-yellow-600"></i> 原生 HTML 使用',
           'install.html.desc': '直接引入 UMD 包，并在 DOM 中使用自定义标签：',
           'install.html.note': '（注意：此组件为 Web Component，需要配合框架或原生 HTML 使用）',
@@ -875,6 +976,15 @@ export class AppModule { }
           'config.attr.initial': '初始化 JSON 数据',
           'config.attr.hotzone': '启用热区功能（管理员模式）',
           'config.attr.hotzoneData': '热区变量数据（JSON 格式）',
+          'config.attr.toolConfig': '工具配置对象（JSON 格式，推荐使用）',
+          'config.attr.line': '显示线条工具',
+          'config.attr.arrow': '显示箭头工具',
+          'config.attr.polygon': '显示多边形工具',
+          'config.attr.undo': '显示撤销按钮',
+          'config.attr.redo': '显示重做按钮',
+          'config.attr.layers': '显示图层管理',
+          'config.attr.group': '显示组合/解组',
+          'config.attr.align': '显示对齐/分布',
           'docs.hotzone.title': '热区功能',
           'docs.hotzone.intro': '热区功能允许给文本对象绑定动态变量，实现模板化的动态文本替换。',
           'docs.hotzone.admin': '管理员模式（设计模板）',
@@ -894,7 +1004,7 @@ export class AppModule { }
           'features.subtitle': 'Core Capabilities',
           'features.title': '✨ Feature Overview',
           'features.drawing.title': '🎨 Drawing Tools',
-          'features.drawing.desc': 'Pencil, rectangles, circles, text and more for diverse creative needs.',
+          'features.drawing.desc': 'Pencil, rectangles, circles, lines, arrows, polygons, text and more for diverse creative needs.',
           'features.image.title': '🖼️ Image Import & Edit',
           'features.image.desc': 'Easily import images to canvas and perform subsequent editing.',
           'features.zoom.title': '🔍 Zoom & Pan',
@@ -902,9 +1012,17 @@ export class AppModule { }
           'features.export.title': '💾 Flexible Import/Export',
           'features.export.desc': 'Save/load JSON projects, export PNG images, clear canvas with one click.',
           'features.zerodep.title': '⚡ Zero Dependencies & Lightweight',
-          'features.zerodep.desc': 'Pure JavaScript, only ~12KB gzipped, no framework overhead.',
+          'features.zerodep.desc': 'Pure JavaScript, only ~15KB gzipped, no framework overhead.',
           'features.hotzone.title': '🔥 Hotzone Feature',
           'features.hotzone.desc': 'Bind dynamic variables to text for template-based dynamic content replacement.',
+          'features.undo.title': '↩️ Undo/Redo',
+          'features.undo.desc': 'Full history support with Ctrl+Z undo and Ctrl+Y redo operations.',
+          'features.layers.title': '📚 Layer Management',
+          'features.layers.desc': 'Move layers up/down/top/bottom, visibility and lock control.',
+          'features.group.title': '🔗 Group/Ungroup',
+          'features.group.desc': 'Multi-select and group objects (Ctrl+G) and ungroup (Ctrl+Shift+G).',
+          'features.align.title': '📐 Align/Distribute',
+          'features.align.desc': 'Left/center/right alignment, horizontal/vertical distribution.',
           'install.subtitle': 'Quick Start',
           'install.title': '📦 Installation & Integration',
           'install.npm': '<i class="fab fa-npm mr-3 text-red-500"></i> NPM Install',
@@ -936,7 +1054,7 @@ export class AppModule { }
           'docs.event.close.desc': 'Triggered when editor closes.',
           'docs.objects.intro': 'Each drawing object has the following base properties:',
           'docs.objects.id': 'Unique identifier',
-          'docs.objects.type.desc': 'Object type: RECTANGLE, CIRCLE, PATH, TEXT, IMAGE',
+          'docs.objects.type.desc': 'Object type: RECTANGLE, CIRCLE, PATH, TEXT, IMAGE, LINE, ARROW, POLYGON, GROUP',
           'docs.objects.xy': 'Coordinate position',
           'docs.objects.color': 'Color value (e.g. #3b82f6)',
           'docs.objects.linewidth': 'Line width',
@@ -946,6 +1064,10 @@ export class AppModule { }
           'docs.objects.path.desc': 'Coordinate array',
           'docs.objects.text': '📝 Text (TEXT)',
           'docs.objects.image': '🖼️ Image (IMAGE)',
+          'docs.objects.line': '📏 Line (LINE)',
+          'docs.objects.arrow': '➡️ Arrow (ARROW)',
+          'docs.objects.polygon': '🔷 Polygon (POLYGON)',
+          'docs.objects.group': '📦 Group (GROUP)',
           'install.html.title': '<i class="fas fa-code mr-3 text-yellow-600"></i> Vanilla HTML Usage',
           'install.html.desc': 'Import UMD bundle directly and use custom element in DOM:',
           'install.html.note': '(Note: This is a Web Component, use with frameworks or vanilla HTML)',
@@ -980,6 +1102,15 @@ export class AppModule { }
           'config.attr.initial': 'Initial JSON data',
           'config.attr.hotzone': 'Enable hotzone feature (admin mode)',
           'config.attr.hotzoneData': 'Hotzone variable data (JSON format)',
+          'config.attr.toolConfig': 'Tool configuration object (JSON format, recommended)',
+          'config.attr.line': 'Show line tool',
+          'config.attr.arrow': 'Show arrow tool',
+          'config.attr.polygon': 'Show polygon tool',
+          'config.attr.undo': 'Show undo button',
+          'config.attr.redo': 'Show redo button',
+          'config.attr.layers': 'Show layer management',
+          'config.attr.group': 'Show group/ungroup',
+          'config.attr.align': 'Show align/distribute',
           'docs.hotzone.title': 'Hotzone Feature',
           'docs.hotzone.intro': 'The hotzone feature allows binding dynamic variables to text objects for template-based dynamic text replacement.',
           'docs.hotzone.admin': 'Admin Mode (Design Templates)',
