@@ -1643,8 +1643,10 @@ export class CanvasDrawingEditor extends HTMLElement {
             <button class="layer-item-btn layer-visibility-btn" data-id="${obj.id}" title="${hidden ? this.t('show') : this.t('hide')}">
               ${hidden ? '👁‍🗨' : '👁'}
             </button>
+            <button class="layer-item-btn layer-top-btn" data-id="${obj.id}" title="${this.t('layerTop')}">⇈</button>
             <button class="layer-item-btn layer-up-btn" data-id="${obj.id}" title="${this.t('layerUp')}">↑</button>
             <button class="layer-item-btn layer-down-btn" data-id="${obj.id}" title="${this.t('layerDown')}">↓</button>
+            <button class="layer-item-btn layer-bottom-btn" data-id="${obj.id}" title="${this.t('layerBottom')}">⇊</button>
           </div>
         </div>
       `;
@@ -1704,6 +1706,28 @@ export class CanvasDrawingEditor extends HTMLElement {
         const id = (btn as HTMLElement).dataset.id;
         if (id) {
           this.moveLayerDown(id);
+          this.renderLayerList();
+        }
+      });
+    });
+
+    layerList.querySelectorAll('.layer-top-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = (btn as HTMLElement).dataset.id;
+        if (id) {
+          this.moveLayerToTop(id);
+          this.renderLayerList();
+        }
+      });
+    });
+
+    layerList.querySelectorAll('.layer-bottom-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = (btn as HTMLElement).dataset.id;
+        if (id) {
+          this.moveLayerToBottom(id);
           this.renderLayerList();
         }
       });
